@@ -16,6 +16,22 @@ type Message = {
   videoUrl?: string
 }
 
+// 1. Agrega una función para enviar el mensaje al backend
+async function sendMessageToBackend({ ticketId, content }: { ticketId: string, content: string }) {
+  // Cambia el ticketId por el real según tu lógica de tickets
+  const response = await fetch("/api/messages", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ ticketId, content }),
+  });
+  if (!response.ok) {
+    // Si hay un error, puedes mostrar un mensaje o manejarlo
+    console.error("Error al enviar mensaje", await response.json());
+    return null;
+  }
+  return await response.json();
+}
+
 export function Chat() {
   const [videoFile, setVideoFile] = useState<File | null>(null)
   const [videoPreviewUrl, setVideoPreviewUrl] = useState<string | null>(null)
@@ -29,25 +45,35 @@ export function Chat() {
     },
   ])
 
+  // Simula un ticketId fijo para pruebas (deberías obtenerlo dinámicamente en tu app real)
+  const ticketId = "TICKET_ID_DE_PRUEBA";
+
   const handleVideoUpload = (file: File) => {
     setVideoFile(file)
     const url = URL.createObjectURL(file)
     setVideoPreviewUrl(url)
   }
 
-  const handleFormSubmit = (e: React.FormEvent) => {
+  const handleFormSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
 
     if (!input.trim() && !videoFile) return
 
-    const newMessage: Message = {
-      id: Date.now().toString(),
-      role: "user",
-      content: input.trim(),
-      videoUrl: videoPreviewUrl || undefined,
-    }
+    // 2. Llama a la función para enviar el mensaje al backend
+    const backendMessage = await sendMessageToBackend({ ticketId, content: input.trim() });
 
-    setCustomMessages((prev) => [...prev, newMessage])
+    if (backendMessage) {
+      // 3. Si el mensaje se guardó, actualiza la lista local (opcional)
+      setCustomMessages((prev) => [
+        ...prev,
+        {
+          id: backendMessage.id,
+          role: "user",
+          content: backendMessage.content,
+          videoUrl: undefined, // Puedes agregar lógica para videos después
+        },
+      ]);
+    }
 
     // Agregar mensaje de confirmación del sistema
     setTimeout(() => {
